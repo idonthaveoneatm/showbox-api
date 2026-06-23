@@ -1,9 +1,9 @@
-import CryptoJS from 'crypto-js';
-import { customAlphabet } from 'nanoid';
-import dotenv from 'dotenv';
-import axios from 'axios';
+import CryptoJS from 'crypto-js'
+import { customAlphabet } from 'nanoid'
+import dotenv from 'dotenv'
+import axios from 'axios'
 
-dotenv.config();
+dotenv.config()
 
 const CONFIG = {
     BASE_URL: 'https://mbpapi.shegu.net/api/api_client/index/',
@@ -21,13 +21,13 @@ const CONFIG = {
         VERSION: '154',
         MEDIUM: 'Website',
     }
-};
+}
 
-const nanoid = customAlphabet('0123456789abcdef', 32);
+const nanoid = customAlphabet('0123456789abcdef', 32)
 
 class ShowboxAPI {
     constructor() {
-        this.baseUrl = CONFIG.BASE_URL;
+        this.baseUrl = CONFIG.BASE_URL
     }
 
     encrypt(data) {
@@ -35,17 +35,17 @@ class ShowboxAPI {
             data,
             CryptoJS.enc.Utf8.parse(CONFIG.KEY),
             { iv: CryptoJS.enc.Utf8.parse(CONFIG.IV) }
-        ).toString();
+        ).toString()
     }
 
     generateVerify(encryptedData) {
         return CryptoJS.MD5(
             CryptoJS.MD5(CONFIG.APP_KEY).toString() + CONFIG.KEY + encryptedData
-        ).toString();
+        ).toString()
     }
 
     getExpiryTimestamp() {
-        return Math.floor(Date.now() / 1000 + 60 * 60 * 12);
+        return Math.floor(Date.now() / 1000 + 60 * 60 * 12)
     }
 
     async request(module, params = {}) {
@@ -54,14 +54,14 @@ class ShowboxAPI {
             expired_date: this.getExpiryTimestamp(),
             module,
             ...params,
-        };
+        }
 
-        const encryptedData = this.encrypt(JSON.stringify(requestData));
+        const encryptedData = this.encrypt(JSON.stringify(requestData))
         const body = JSON.stringify({
             app_key: CryptoJS.MD5(CONFIG.APP_KEY).toString(),
             verify: this.generateVerify(encryptedData),
             encrypt_data: encryptedData,
-        });
+        })
 
         const formData = new URLSearchParams({
             data: Buffer.from(body).toString('base64'),
@@ -69,7 +69,7 @@ class ShowboxAPI {
             platform: CONFIG.DEFAULTS.PLATFORM,
             version: CONFIG.DEFAULTS.VERSION,
             medium: CONFIG.DEFAULTS.MEDIUM,
-        });
+        })
 
        const response = await axios.post(this.baseUrl,
         `${formData.toString()}&token${nanoid()}`, 
@@ -79,58 +79,63 @@ class ShowboxAPI {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'User-Agent': 'okhttp/3.2.0',
             }
-        });
+        })
 
-        return response.data;
+        if(!response.data || !response.data?.data){
+            return {code: "0", msg: "no data/no response"}
+        }
+
+        return response.data.data
     }
 
-    async search(title, type = 'all', page = 1, pagelimit = 20) {
-        return this.request('Search5', { page, type, keyword: title, pagelimit }).then(data => {
-            return data.data;
-        });
+    async search(keyword, type, page, pagelimit) {
+        return this.request('Search5', { page, type, keyword, pagelimit}).then(data => {
+            return data
+        })
     }
 
     async getDetails(id, type) {
-        return this.request(type == 1 ? 'Movie_detail' : 'TV_detail_v2', type == 1 ? { mid: id } : { tid: id }).then(data => {
-            return data.data
-        });
+        return this.request(type == "movie" ? 'Movie_detail' : 'TV_detail_v2', type == "movie" ? { mid: id } : { tid: id }).then(data => {
+            return data
+        })
     }
 
     async getHot(type = 'movie', items = null) {
         return this.request('Search_hot', {type: type, pagelimit: items}).then(data => {
-            return data.data
+            return data
         })
     }
 
     async getTopList(type) {
         return this.request('Top_list', {box_type: type}).then(data => {
-            return data.data
+            return data
         })
     }
     
-    /**async getTopListContent(type, list, page = 1, pagelimit = 20) {
+    /**
+    async getTopListContent(type, list, page = 1, pagelimit = 20) {
         return this.request(type == 1 ? 'Top_list_movie' : 'Top_list_tv', {id: list, page: page, pagelimit: pagelimit}).then(data => {
             return data
         })
-    }**/
-
-    /**async getEpisodes(showId, season) {
+    }
+    async getEpisodes(showId, season) {
         return this.request('TV_episode', {tid: showId, season: season}).then(data => {
             return data
         })
-    }**/
+    }
+    **/
 
     async getFebBoxId(id, type) {
-        const response = await axios.get(`https://www.showbox.media/index/share_link?id=${id}&type=${type}`);
-        const data = await response.data;
-        return data?.data?.link?.split('/').pop();
+        const response = await axios.get(`https://www.showbox.media/index/share_link?id=${id}&type=${type}`)
+        const data = await response.data
+        return data?.data?.link?.split('/').pop()
     }
 
     async getAutocomplete(keyword , pagelimit = 5) {
         return this.request('Autocomplate2', { keyword, pagelimit: pagelimit }).then(data => {
-            return data.data;
-        });
+            return data
+        })
     }
 }
 
-export default ShowboxAPI;
+export default ShowboxAPI
