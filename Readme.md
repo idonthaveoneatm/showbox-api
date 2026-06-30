@@ -36,6 +36,11 @@ Do not share your UI token with others as it is tied to your account.
 ```bash
 npm install
 ```
+## Docker Setup
+To build and start the application in detached mode, use:
+```bash
+docker-compose up -d --build
+```
 # API Documentation
 ## Endpoints:
 ### `GET /search`
